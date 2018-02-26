@@ -1,0 +1,104 @@
+<%#
+ Copyright 2013-2018 the original author or authors from the JHipster project.
+
+ This file is part of the JHipster project, see http://www.jhipster.tech/
+ for more information.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-%>
+Description: >
+    The template to create an ecs service and associate with a load balancer if provided.
+
+Parameters: 
+
+    Cluster:
+        Description: The cluster name where the container is deployed.
+        Type: String
+        Default: <%= clusterName %>
+
+    DesiredCount: 
+        Description: The desired number of task instances that needs to be started.
+        Type: Number
+        Default: <%= desiredCount %>
+    
+    PortNumber:
+        Description: The port number exposed by the container.
+        Type: String
+        Default: <%= portNumber %>
+
+    ImageName:
+        Description: The image name of the conatainer.
+        Type: String
+        Default: <%= imageName %>
+
+ <%_ if (targetGroupARN != 'none') { _%>
+    TargetGroup:
+        Description: The target group of the load balancer to which the container is associated with.
+        Type: String
+        Default: <%= targetGroupARN %>
+<%_ } _%>  
+
+    Memory:
+        Description: The memory that is allocated to the container.
+        Type: Number
+        Default: <%= ecsMemory %>
+    
+    Cpu:
+        Description: The cpu that is allocated to the container.
+        Type: Number
+        Default: <%= ecsCPU %>
+    
+    IamRole:
+        Description: The iam role that is assigned to a container.
+        Type: String
+        Default: <%= iamRole %>
+    
+    LogGroup:
+        Description: The cloud watch log group that is assigned to a container where the logs are written.
+        Type: String
+        Default: <%= cloudWatchLogGroup %>
+
+Resources:
+    Service: 
+        Type: AWS::ECS::Service
+        Properties: 
+            Cluster: !Ref Cluster
+<%_ if (targetGroupARN != 'none') { _%>
+            Role: !Ref IamRole
+<%_ } _%>
+            DesiredCount: !Ref DesiredCount
+            TaskDefinition: !Ref TaskDefinition
+<%_ if (targetGroupARN != 'none') { _%>
+            LoadBalancers: 
+                - ContainerName: <%= serviceName %>
+                  ContainerPort: <%= portNumber %>
+                  TargetGroupArn: !Ref TargetGroup
+<%_ } _%>
+
+    TaskDefinition:
+        Type: AWS::ECS::TaskDefinition
+        Properties:
+            Family: <%= serviceName %>
+            ContainerDefinitions:
+                - Name: <%= serviceName %>
+                  Essential: true
+                  Image: !Ref ImageName
+                  Memory: !Ref Memory
+                  Cpu: !Ref Cpu
+                  PortMappings:
+                    - ContainerPort: <%= portNumber %>
+                  LogConfiguration:
+                    LogDriver: awslogs
+                    Options:
+                        awslogs-group: !Ref LogGroup
+                        awslogs-region: !Ref AWS::Region
